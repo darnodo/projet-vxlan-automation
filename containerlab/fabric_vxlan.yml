@@ -1,47 +1,47 @@
-name: vxlan-evpn-l2
+name: vxlan_fabric
 mgmt:
   network: management 
 topology: 
   nodes:
     padc_sp1_00:
             kind: ceos
-            image: ceos:4.33.1F
+            image: ceos:4.33.2F
             mgmt-ipv4: 172.20.20.10
     padc_sp2_00:
             kind: ceos
-            image: ceos:4.33.1F
+            image: ceos:4.33.2F
             mgmt-ipv4: 172.20.20.11
     pa01_lf1_00:
             kind: ceos
-            image: ceos:4.33.1F
+            image: ceos:4.33.2F
             mgmt-ipv4: 172.20.20.100
     pa02_lf2_00:
             kind: ceos
-            image: ceos:4.33.1F
+            image: ceos:4.33.2F
             mgmt-ipv4: 172.20.20.101
     pa03_lf3_00:
             kind: ceos
-            image: ceos:4.33.1F
+            image: ceos:4.33.2F
             mgmt-ipv4: 172.20.20.102
     pa04_lf4_00:
             kind: ceos
-            image: ceos:4.33.1F
+            image: ceos:4.33.2F
             mgmt-ipv4: 172.20.20.103
     pa01_sw1_00:
             kind: ceos
-            image: ceos:4.33.1F
+            image: ceos:4.33.2F
             mgmt-ipv4: 172.20.20.110
     pa02_sw1_00:
             kind: ceos
-            image: ceos:4.33.1F
+            image: ceos:4.33.2F
             mgmt-ipv4: 172.20.20.111
     pa03_sw1_00:
             kind: ceos
-            image: ceos:4.33.1F
+            image: ceos:4.33.2F
             mgmt-ipv4: 172.20.20.112
     pa04_sw1_00:
             kind: ceos
-            image: ceos:4.33.1F
+            image: ceos:4.33.2F
             mgmt-ipv4: 172.20.20.113
     host1:
             kind: linux
