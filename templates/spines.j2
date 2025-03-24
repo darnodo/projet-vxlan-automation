@@ -14,12 +14,12 @@ interface {{ interface.name }}
 {%- endfor %}
 
 {# BGP Configuration #}
+ip routing
 {%- set loopback_interface = device.interfaces.get(name='Loopback0') %}
 {%- set router_id = loopback_interface.ip_addresses.first().address.ip %}
 router bgp {{ device.custom_field_data.ASN }}
  router-id {{ router_id }}
  maximum-paths 4 ecmp 4
- !
  neighbor LEAF_GROUP peer group
  neighbor LEAF_GROUP allowas-in 1
  neighbor LEAF_GROUP ebgp-multihop 4
@@ -36,7 +36,6 @@ router bgp {{ device.custom_field_data.ASN }}
 {%- endfor %}
 {%- endif %}
 {%- endfor %}
- !
  address-family ipv4
 {%- for interface in device.interfaces.all() %}
 {%- if interface.connected_endpoints %}
@@ -48,5 +47,4 @@ router bgp {{ device.custom_field_data.ASN }}
 {%- endfor %}
 {%- endif %}
 {%- endfor %}
- exit-address-family
 !
