@@ -23,6 +23,9 @@ interface {{ interface.name }}
 !
 {%- endfor %}
 
+service routing protocols model multi-agent
+ip routing
+
 {# BGP Route-Maps and Prefix Lists #}
 {%- set loopback_ip = device.interfaces.get(name='Loopback0').ip_addresses.first().address %}
 ip prefix-list VTEP_PREFIX seq 10 permit {{ loopback_ip }}
@@ -85,7 +88,6 @@ router bgp {{ device.custom_field_data.ASN }}
 {%- endif %}
 {%- endfor %}
   redistribute connected route-map RMAP_VTEP
- exit-address-family
  !
  address-family evpn
 {%- for leaf in other_leafs %}
@@ -94,7 +96,6 @@ router bgp {{ device.custom_field_data.ASN }}
   neighbor {{ leaf_lo.address.ip }} activate
 {%- endif %}
 {%- endfor %}
- exit-address-family
 !
 
 {# VXLAN Configuration #}
