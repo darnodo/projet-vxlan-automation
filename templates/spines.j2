@@ -1,44 +1,50 @@
-{# Interface Configuration #}
-{% for interface in device.interfaces.all() %}
+{%- for interface in device.interfaces.all() %}
 interface {{ interface.name }}
 {%- if interface.description %}
-description {{ interface.description }}
+ description {{ interface.description }}
 {%- endif %}
-no shutdown
-no switchport
-ip address {{ ipam.IPAddress.objects.get(assigned_object_id=interface.id).address }}
-mtu 9214
+ no shutdown
+ no switchport
+{%- set ip_address = interface.ip_addresses.first() %}
+{%- if ip_address %}
+ ip address {{ ip_address.address }}
+{%- endif %}
+ mtu 9214
 !
-{% endfor %}
+{%- endfor %}
 
 {# BGP Configuration #}
-{% set loopback_interface = device.interfaces.get(name='Loopback0') %}
-{% set router_id = ipam.IPAddress.objects.get(assigned_object_id=loopback_interface.id).address %}
+ip routing
+{%- set loopback_interface = device.interfaces.get(name='Loopback0') %}
+{%- set router_id = loopback_interface.ip_addresses.first().address.ip %}
 router bgp {{ device.custom_field_data.ASN }}
-router-id {{ router_id }}
-maximum-paths 4 ecmp 4
-neighbor LEAF_GROUP peer group
-neighbor LEAF_GROUP allowas-in 1
-neighbor LEAF_GROUP ebgp-multihop 4
-neighbor LEAF_GROUP send-community extended
-neighbor LEAF_GROUP maximum-routes 12000
+ router-id {{ router_id }}
+ maximum-paths 4 ecmp 4
+ neighbor LEAF_GROUP peer group
+ neighbor LEAF_GROUP allowas-in 1
+ neighbor LEAF_GROUP ebgp-multihop 4
+ neighbor LEAF_GROUP send-community extended
+ neighbor LEAF_GROUP maximum-routes 12000
 {%- for interface in device.interfaces.all() %}
-    {%- if interface.connected_endpoints %}
-        {%- for remote_interface in interface.connected_endpoints %}
-            {%- set remote_ip = ipam.IPAddress.objects.get(assigned_object_id=remote_interface.id) %}
-neighbor {{ remote_ip.address }} peer group LEAF_GROUP
-neighbor {{ remote_ip.address }} remote-as {{ remote_interface.device.custom_field_data.ASN }}
-        {%- endfor %}
-    {%- endif %}
+{%- if interface.connected_endpoints %}
+{%- for remote_interface in interface.connected_endpoints %}
+{%- set remote_ip = remote_interface.ip_addresses.first() %}
+{%- if remote_ip %}
+ neighbor {{ remote_ip.address.ip }} peer group LEAF_GROUP
+ neighbor {{ remote_ip.address.ip }} remote-as {{ remote_interface.device.custom_field_data.ASN }}
+{%- endif %}
 {%- endfor %}
-!
-address-family ipv4
+{%- endif %}
+{%- endfor %}
+ address-family ipv4
 {%- for interface in device.interfaces.all() %}
-    {%- if interface.connected_endpoints %}
-        {%- for remote_interface in interface.connected_endpoints %}
-            {%- set remote_ip = ipam.IPAddress.objects.get(assigned_object_id=remote_interface.id) %}
-neighbor {{ remote_ip.address }} activate
-        {%- endfor %}
-    {%- endif %}
+{%- if interface.connected_endpoints %}
+{%- for remote_interface in interface.connected_endpoints %}
+{%- set remote_ip = remote_interface.ip_addresses.first() %}
+{%- if remote_ip %}
+  neighbor {{ remote_ip.address.ip }} activate
+{%- endif %}
+{%- endfor %}
+{%- endif %}
 {%- endfor %}
 !

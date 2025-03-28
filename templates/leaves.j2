@@ -1,44 +1,157 @@
-{# Interface Configuration #}
-{% for interface in device.interfaces.all() %}
+{# Leaf Configuration Template #}
+{%- for interface in device.interfaces.all() %}
 interface {{ interface.name }}
 {%- if interface.description %}
-description {{ interface.description }}
+ description {{ interface.description }}
 {%- endif %}
-no shutdown
-no switchport
-ip address {{ ipam.IPAddress.objects.get(assigned_object_id=interface.id).address }}
-mtu 9214
+{%- if interface.name == 'Loopback0' %}
+ description VTEP
+{%- endif %}
+{%- if interface.name == 'Ethernet3' %}
+ switchport mode trunk
+ no shutdown
+ mtu 9214
+{%- else %}
+ no shutdown
+ no switchport
+{%- set ip_address = interface.ip_addresses.first() %}
+{%- if ip_address %}
+ ip address {{ ip_address.address }}
+{%- endif %}
+ mtu 9214
+{%- endif %}
 !
-{% endfor %}
+{%- endfor %}
 
-{# BGP Configuration #}
-{% set loopback_interface = device.interfaces.get(name='Loopback0') %}
-{% set router_id = ipam.IPAddress.objects.get(assigned_object_id=loopback_interface.id).address %}
+service routing protocols model multi-agent
+ip routing
+
+{# BGP Route-Maps and Prefix Lists #}
+{%- set loopback_ip = device.interfaces.get(name='Loopback0').ip_addresses.first().address %}
+ip prefix-list VTEP_PREFIX seq 10 permit {{ loopback_ip }}
+!
+route-map RMAP_VTEP permit 10
+ match ip address prefix-list VTEP_PREFIX
+!
+
+{# Complete BGP Configuration #}
+{%- set router_id = loopback_ip.ip %}
 router bgp {{ device.custom_field_data.ASN }}
-router-id {{ router_id }}
-maximum-paths 4 ecmp 4
-neighbor SPINE_GROUP peer group
-neighbor SPINE_GROUP allowas-in 1
-neighbor SPINE_GROUP ebgp-multihop 4
-neighbor SPINE_GROUP send-community extended
-neighbor SPINE_GROUP maximum-routes 12000
+ router-id {{ router_id }}
+ maximum-paths 4 ecmp 4
+ !
+ neighbor SPINE_GROUP peer group
+ neighbor SPINE_GROUP allowas-in 1
+ neighbor SPINE_GROUP ebgp-multihop 4
+ neighbor SPINE_GROUP send-community extended
+ neighbor SPINE_GROUP maximum-routes 12000
+ !
+ neighbor VTEP_GROUP peer group
+ neighbor VTEP_GROUP ebgp-multihop 5
+ neighbor VTEP_GROUP send-community extended
 {%- for interface in device.interfaces.all() %}
-    {%- if interface.connected_endpoints and interface.name != 'Ethernet3' %}
-        {%- for remote_interface in interface.connected_endpoints %}
-            {%- set remote_ip = ipam.IPAddress.objects.get(assigned_object_id=remote_interface.id) %}
-neighbor {{ remote_ip.address }} peer group SPINE_GROUP
-neighbor {{ remote_ip.address }} remote-as {{ remote_interface.device.custom_field_data.ASN }}
-        {%- endfor %}
-    {%- endif %}
+{%- if interface.connected_endpoints and interface.name != 'Ethernet3' and interface.name != 'Loopback0' %}
+{%- set local_ip = interface.ip_addresses.first() %}
+{%- if local_ip %}
+{%- for remote_interface in interface.connected_endpoints %}
+{%- set remote_ip = remote_interface.ip_addresses.first() %}
+{%- if remote_ip %}
+ neighbor {{ remote_ip.address.ip }} peer group SPINE_GROUP
+ neighbor {{ remote_ip.address.ip }} remote-as {{ remote_interface.device.custom_field_data.ASN }}
+{%- endif %}
+{%- endfor %}
+{%- endif %}
+{%- endif %}
+{%- endfor %}
+{%- set other_leafs = device.site.devices.filter(role__slug='leaf').exclude(id=device.id) %}
+{%- for leaf in other_leafs %}
+{%- set leaf_lo = leaf.interfaces.get(name='Loopback0').ip_addresses.first() %}
+{%- if leaf_lo %}
+ neighbor {{ leaf_lo.address.ip }} peer group VTEP_GROUP
+ neighbor {{ leaf_lo.address.ip }} remote-as {{ leaf.custom_field_data.ASN }}
+ neighbor {{ leaf_lo.address.ip }} update-source Loopback0
+{%- endif %}
+{%- endfor %}
+ !
+ address-family ipv4
+{%- for interface in device.interfaces.all() %}
+{%- if interface.connected_endpoints and interface.name != 'Ethernet3' and interface.name != 'Loopback0' %}
+{%- set local_ip = interface.ip_addresses.first() %}
+{%- if local_ip %}
+{%- for remote_interface in interface.connected_endpoints %}
+{%- set remote_ip = remote_interface.ip_addresses.first() %}
+{%- if remote_ip %}
+  neighbor {{ remote_ip.address.ip }} activate
+{%- endif %}
+{%- endfor %}
+{%- endif %}
+{%- endif %}
+{%- endfor %}
+  redistribute connected route-map RMAP_VTEP
+ !
+ address-family evpn
+{%- for leaf in other_leafs %}
+{%- set leaf_lo = leaf.interfaces.get(name='Loopback0').ip_addresses.first() %}
+{%- if leaf_lo %}
+  neighbor {{ leaf_lo.address.ip }} activate
+{%- endif %}
 {%- endfor %}
 !
-address-family ipv4
-{%- for interface in device.interfaces.all() %}
-    {%- if interface.connected_endpoints and interface.name != 'Ethernet3' %}
-        {%- for remote_interface in interface.connected_endpoints %}
-            {%- set remote_ip = ipam.IPAddress.objects.get(assigned_object_id=remote_interface.id) %}
-neighbor {{ remote_ip.address }} activate
-        {%- endfor %}
-    {%- endif %}
+
+{# VXLAN Configuration #}
+{%- if device.location and device.location.tenant %}
+{%- set tenant = device.location.tenant %}
+{%- set tenant_vlans = tenant.vlans.all() %}
+{%- set tenant_prefix = tenant.prefixes.first() %}
+{%- set tenant_l2vpns = tenant.l2vpns.filter(type='vxlan-evpn') %}
+{%- set loopback_ip = device.interfaces.get(name='Loopback0').ip_addresses.first().address.ip %}
+ip virtual-router mac-address 00:0a:bc:10:11:02
+!
+{%- for vlan in tenant_vlans %}
+vlan {{ vlan.vid }}
+ name IRB_{{ tenant.name|upper }}_SERVICE
+!
+interface Vlan{{ vlan.vid }}
+ description {{ tenant.name }} Service Interface
+ vrf {{ tenant.name|upper }}
+{%- if tenant_prefix %}
+{%- set network = tenant_prefix.prefix.network %}
+{%- set first_ip = network + 1 %}
+ ip address virtual {{ first_ip }}/{{ tenant_prefix.prefix.prefixlen }}
+{%- endif %}
+!
+{%- endfor %}
+
+{%- set spine_loopbacks = [] %}
+{%- for spine in device.site.devices.filter(role__slug='spine') %}
+{%- set spine_lo = spine.interfaces.get(name='Loopback0').ip_addresses.first() %}
+{%- if spine_lo %}
+{%- set _ = spine_loopbacks.append(spine_lo.address.ip) %}
+{%- endif %}
+{%- endfor %}
+
+{%- for l2vpn in tenant_l2vpns %}
+{%- set vxlan_index = loop.index %}
+interface Vxlan{{ vxlan_index }}
+ description VTI
+ vxlan source-interface Loopback0
+{%- for vlan in tenant_vlans %}
+ vxlan vlan {{ vlan.vid }} vni {{ l2vpn.identifier }}
+{%- for spine_ip in spine_loopbacks %}
+ vxlan vlan {{ vlan.vid }} flood vtep {{ spine_ip }}
+{%- endfor %}
 {%- endfor %}
 !
+{%- endfor %}
+
+router bgp {{ device.custom_field_data.ASN }}
+{%- for vlan in tenant_vlans %}
+{%- set l2vpn = tenant_l2vpns.first() %}
+{%- if l2vpn %}
+ vlan {{ vlan.vid }}
+  rd {{ loopback_ip }}:{{ l2vpn.identifier }}
+  route-target both {{ l2vpn.identifier }}:{{ vlan.vid }}
+  redistribute learned
+{%- endif %}
+{%- endfor %}
+{%- endif %}

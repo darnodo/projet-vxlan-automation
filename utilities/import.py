@@ -53,6 +53,32 @@ def get_or_create_device_role(netbox_url, headers, role):
     print(f"[INFO] Device Role '{name}' created (ID={created['id']}).")
     return created
 
+def get_or_create_interface_template(netbox_url, headers, device_type_id, interface_data):
+    """
+    Create interface template for a device type if it doesn't exist
+    """
+    name = interface_data["name"]
+    url = f"{netbox_url}/api/dcim/interface-templates/?name={name}&devicetype_id={device_type_id}"
+    resp = requests.get(url, headers=headers)
+    resp.raise_for_status()
+    results = resp.json()["results"]
+    
+    if results:
+        print(f"[INFO] Interface template '{name}' already exists for device type ID={device_type_id}")
+        return results[0]
+
+    create_url = f"{netbox_url}/api/dcim/interface-templates/"
+    payload = {
+        "device_type": device_type_id,
+        "name": name,
+        "type": interface_data["type"],
+        "mgmt_only": interface_data.get("mgmt_only", False)
+    }
+    resp = requests.post(create_url, headers=headers, json=payload)
+    resp.raise_for_status()
+    created = resp.json()
+    print(f"[INFO] Interface template '{name}' created for device type ID={device_type_id}")
+    return created
 
 def get_or_create_device_type(netbox_url, headers, device_type, manufacturers_cache):
     manufacturer_slug = device_type["manufacturer"]
@@ -91,7 +117,12 @@ def get_or_create_device_type(netbox_url, headers, device_type, manufacturers_ca
     print(
         f"[INFO] Device Type '{created_dt['model']}' created (ID={created_dt['id']})."
     )
+    # Create interface templates if defined
+    if "interfaces" in device_type:
+        for interface in device_type["interfaces"]:
+            get_or_create_interface_template(netbox_url, headers, created_dt["id"], interface)
 
+    return created_dt
 
 ########################################
 # Subnets import
@@ -211,8 +242,19 @@ def create_container_prefix(netbox_url, headers, cidr, description, role_id, sit
 # Divers Creation
 ########################################
 
-def get_or_create_custom_field(netbox_url, headers):
-    field_name = "ASN"
+def get_or_create_custom_field(netbox_url, headers, field_name, object_types, field_type, label=None, description=None, related_object_type=None):
+    """
+    Create a custom field in NetBox.
+    Args:
+        netbox_url (str): The NetBox URL
+        headers (dict): Request headers
+        field_name (str): Name of the custom field
+        object_types (list): List of object types (e.g. ['dcim.device'])
+        field_type (str): Type of field (e.g. 'integer', 'text', 'boolean', 'object')
+        label (str, optional): Label for the field. Defaults to field_name
+        description (str, optional): Description of the field. Defaults to field_name
+        related_object_type (str, optional): Required for object type fields (e.g. 'ipam.vlan')
+    """
     url = f"{netbox_url}/api/extras/custom-fields/"
 
     # Check if the custom field already exists
@@ -223,20 +265,31 @@ def get_or_create_custom_field(netbox_url, headers):
             print(f"[INFO] Custom field '{field_name}' already exists.")
             return
 
+    # Set defaults if not provided
+    label = label or field_name
+    description = description or field_name
+
     # Define the custom field payload
     custom_field_data = {
         "name": field_name,
-        "label": "ASN",
-        "type": "integer",
-        "description": "ASN",
+        "label": label,
+        "type": field_type,
+        "description": description,
         "required": False,
         "default": "",
         "weight": 100,
         "filter_logic": "loose",
         "ui_visible": "always",
         "is_cloneable": True,
-        "object_types": ["dcim.device"],
+        "object_types": object_types,
+        "related_object_type": related_object_type
     }
+
+    # Add related_object_type if field_type is 'object'
+    if field_type == "object" and related_object_type:
+        custom_field_data["object_type"] = related_object_type
+    elif field_type == "object" and not related_object_type:
+        raise ValueError("related_object_type is required for object type fields")
 
     # Create the custom field
     create_response = requests.post(url, headers=headers, json=custom_field_data)
@@ -277,7 +330,8 @@ def main():
         subnets_data = yaml.safe_load(f)
 
     # Divers Creation
-    get_or_create_custom_field(netbox_url, headers)
+    get_or_create_custom_field(netbox_url, headers, "ASN", ["dcim.device"], "integer", "ASN", "Autonomous System Number")
+    #get_or_create_custom_field(netbox_url, headers, "Customer", ["dcim.interface"], "object", "Customer", "Customer Name", "tenancy.tenant")
 
     ######################################################
     # device_model.yml : manufacturers, roles, types
@@ -297,7 +351,9 @@ def main():
 
     if "device_types" in device_model_data:
         for dt in device_model_data["device_types"]:
-            get_or_create_device_type(netbox_url, headers, dt, manufacturers_cache)
+            device_type = get_or_create_device_type(netbox_url, headers, dt, manufacturers_cache)
+            if not device_type:
+                print(f"[ERROR] Failed to create device type for {dt.get('model', 'unknown')}")
 
     ######################################################
     # subnets.yml : Region, Site, Containers, etc.

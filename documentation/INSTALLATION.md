@@ -2,11 +2,15 @@
 
 ## Table of Contents
 
-1. [Installing ContainerLab](#installing-containerlab)
-2. [Installing Docker](#installing-docker)
-3. [Images Installation](#images-installation)
-4. [Install Netbox and plugins](#install-netbox-and-plugins)
-5. [Sources](#sources)
+- [Installation Guide](#installation-guide)
+  - [Table of Contents](#table-of-contents)
+  - [Installing ContainerLab](#installing-containerlab)
+  - [Installing Docker](#installing-docker)
+  - [Images installation](#images-installation)
+    - [Arista cEOS](#arista-ceos)
+    - [Nokia SR Linux](#nokia-sr-linux)
+  - [Install Netbox and plugins](#install-netbox-and-plugins)
+  - [Sources](#sources)
 
 ## Installing ContainerLab
 
@@ -64,7 +68,7 @@ Once you created an account, please logged in and down the cEOS docker images.
 To add this new image to docker, please use the docker CLI command :
 
 ```bash
-docker import cEOS64-lab-4.32.0.1F.tar.xz ceos:4.32.0.1F
+docker import cEOS64-lab-4.33.2F.tar.xz ceos:4.33.2F
 ```
 
 ### Nokia SR Linux
@@ -85,8 +89,6 @@ ghcr.io/nokia/srlinux   latest    801eb020ad70   11 days ago   2.59GB
 ## Install Netbox and plugins
 
   For this project, we need to install specific plugin :  
-    - [Netbox BGP](https://github.com/netbox-community/netbox-bgp)  
-    - [Netbox Diode](https://github.com/netboxlabs/diode)
     - [Netbox Topology Views](https://github.com/netbox-community/netbox-topology-views)
 
   ```bash
@@ -95,8 +97,6 @@ ghcr.io/nokia/srlinux   latest    801eb020ad70   11 days ago   2.59GB
   touch plugin_requirements.txt Dockerfile-Plugins docker-compose.override.yml
   cat <<EOF > plugin_requirements.txt
   netbox_topology_views
-  netboxlabs-diode-netbox-plugin
-  netbox-napalm-plugin
   EOF
   ```
 
@@ -165,7 +165,7 @@ ghcr.io/nokia/srlinux   latest    801eb020ad70   11 days ago   2.59GB
 
   ```python
   PLUGINS = [
-      "netbox-topology-views"
+      "netbox_topology_views"
   ]
   ```
 

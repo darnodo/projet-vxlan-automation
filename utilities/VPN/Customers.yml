@@ -3,7 +3,7 @@ Tenant:
     Subnets: 10.100.0.0/24
     VLAN: 100
     VNI: 1100
-  - Name: Purpel
+  - Name: Purple
     Subnets: 10.50.0.0/24
     VLAN: 50
     VNI: 1050
