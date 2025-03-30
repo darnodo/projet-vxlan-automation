@@ -71,21 +71,6 @@ To add this new image to docker, please use the docker CLI command :
 docker import cEOS64-lab-4.33.2F.tar.xz ceos:4.33.2F
 ```
 
-### Nokia SR Linux
-
-```bash
-docker pull ghcr.io/nokia/srlinux
-```
-
-Now you should see images available to use :
-
-```bash
-➜  projet-vxlan-automation git:(main) ✗ docker images
-REPOSITORY              TAG       IMAGE ID       CREATED       SIZE
-ceos                    4.32.0.1F   63870e68ff8d   2 days ago    1.95GB
-ghcr.io/nokia/srlinux   latest    801eb020ad70   11 days ago   2.59GB
-```
-
 ## Install Netbox and plugins
 
   For this project, we need to install specific plugin :  

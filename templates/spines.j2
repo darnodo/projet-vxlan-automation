@@ -1,3 +1,7 @@
+{# Routing functionnality #}
+ip routing
+
+{# Interfaces configuration #}
 {%- for interface in device.interfaces.all() %}
 interface {{ interface.name }}
 {%- if interface.description %}
@@ -14,7 +18,6 @@ interface {{ interface.name }}
 {%- endfor %}
 
 {# BGP Configuration #}
-ip routing
 {%- set loopback_interface = device.interfaces.get(name='Loopback0') %}
 {%- set router_id = loopback_interface.ip_addresses.first().address.ip %}
 router bgp {{ device.custom_field_data.ASN }}

@@ -1,4 +1,9 @@
-{# Leaf Configuration Template #}
+
+{# Routing and VXLAN functionnalities #}
+service routing protocols model multi-agent
+ip routing
+
+{# Interfaces configuration #}
 {%- for interface in device.interfaces.all() %}
 interface {{ interface.name }}
 {%- if interface.description %}
@@ -22,9 +27,6 @@ interface {{ interface.name }}
 {%- endif %}
 !
 {%- endfor %}
-
-service routing protocols model multi-agent
-ip routing
 
 {# BGP Route-Maps and Prefix Lists #}
 {%- set loopback_ip = device.interfaces.get(name='Loopback0').ip_addresses.first().address %}
