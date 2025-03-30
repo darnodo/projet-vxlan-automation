@@ -8,7 +8,6 @@
   - [Installing Docker](#installing-docker)
   - [Images installation](#images-installation)
     - [Arista cEOS](#arista-ceos)
-    - [Nokia SR Linux](#nokia-sr-linux)
   - [Install Netbox and plugins](#install-netbox-and-plugins)
   - [Sources](#sources)
 
