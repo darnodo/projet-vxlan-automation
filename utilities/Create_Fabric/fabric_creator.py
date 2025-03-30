@@ -152,7 +152,7 @@ class VXLANFabricCreator:
             )
 
             # Création Leaf
-            leaf_name = f"{self.config.site_code.lower()}{str(building_num).zfill(2)}_lf1_00"
+            leaf_name = f"{self.config.site_code.lower()}{str(building_num).zfill(2)}_lf{str(building_num).zfill(1)}_00"
             leaf = self.nb.create_device(
                 name=leaf_name,
                 device_type_slug=self.config.leaf_type,
