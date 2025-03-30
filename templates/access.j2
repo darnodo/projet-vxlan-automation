@@ -1,0 +1,27 @@
+{# Check if device has location and tenant #}
+{%- if device.location and device.location.tenant %}
+{%- set tenant = device.location.tenant %}
+{%- set tenant_vlans = tenant.vlans.all() %}
+
+{# Create VLANs only if tenant_vlans exists and is not empty #}
+{%- if tenant_vlans and tenant_vlans|length > 0 %}
+{# Create VLANs #}
+{%- for vlan in tenant_vlans %}
+vlan {{ vlan.vid }}
+   name IRB_{{ tenant.name|upper }}_SERVICE
+!
+{%- endfor %}
+
+{# Configure trunk port on Ethernet1 #}
+interface Ethernet1
+   switchport mode trunk
+   switchport trunk allowed vlan {{ tenant_vlans|map(attribute='vid')|join(',') }}
+!
+
+{# Configure access port on Ethernet2 with first VLAN from tenant #}
+interface Ethernet2
+   switchport access vlan {{ tenant_vlans[0].vid }}
+   switchport mode access
+!
+{%- endif %}
+{%- endif %}
