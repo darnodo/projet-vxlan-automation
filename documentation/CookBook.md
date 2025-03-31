@@ -66,6 +66,20 @@ Available Locations:
 2: PA3
 3: PA4
 Select locations (comma-separated indices): 0,2
+
+❯ uv run Create_Fabric/add_customers.py
+Enter NetBox URL: http://localhost:8080
+Enter NetBox API Token: 4e58e40e6b19d7f6cc53ae5665ca7ddd00558e71
+Enter Customer Name: Purple
+Enter VLAN ID (1-4094): 10
+Enter VNI ID: 10010
+
+Available Locations:
+0: PA1
+1: PA2
+2: PA3
+3: PA4
+Select locations (comma-separated indices): 1,3
 ```
 
 ## 📝 Apply Templates
@@ -153,7 +167,7 @@ Using the VSCode Containerlab extension:
 
 Currently, you need to manually apply configurations:
 
-1. Use the VSCode extension to "Connect to SSH" for each device
+1. Use the VSCode extension to "Connect to SSH" for each device  
    ![SSH Access](assets/images/cookbook/clab_ssh_access.png)
 
 2. Login credentials:
