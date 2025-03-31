@@ -1,8 +1,5 @@
 # 🌟 NetBox & cEOS VXLAN Fabric Cookbook 🌟
 
->[!WARNING]
-> Work in progress
-
 ## 📚 Introduction
 
 This cookbook guides you through setting up a VXLAN fabric using NetBox for configuration management and cEOS for network virtualization. Perfect for demonstrating NetBox's capabilities with RenderConfig to generate a complete fabric configuration.

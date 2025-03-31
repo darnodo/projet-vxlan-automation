@@ -1,18 +1,16 @@
 # VXLAN EVPN Automation Project
 
-> [!WARNING]
-> Work in progress
->
-
 This project aims to automate the creation and management of a VXLAN EVPN test lab using ContainerLab, Arista cEOS and Netbox 4.2.  
 The automation is primarily achieved through Netbox Render Config and Python scripts.
 
 ## Table of Contents
 
-1. [Prerequisites](#prerequisites)
-2. [Installation](#installation)
-3. [Usage](#usage)
-4. [Sources](#sources)
+- [VXLAN EVPN Automation Project](#vxlan-evpn-automation-project)
+  - [Table of Contents](#table-of-contents)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+  - [Usage](#usage)
+  - [Sources](#sources)
 
 ## Prerequisites
 
