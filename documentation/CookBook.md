@@ -12,7 +12,7 @@ This cookbook guides you through setting up a VXLAN fabric using NetBox for conf
 2. Execute the Python script to import your device models:
 
 ```bash
-uv run import.py http://localhost:8080 YOUR_TOKEN Devices/devices_model.yml
+uv run import.py http://localhost:8080 YOUR_TOKEN Devices/devices_model.yml IPAM/subnet.yml
 ```
 
 ## 🏗️ Create Fabric
